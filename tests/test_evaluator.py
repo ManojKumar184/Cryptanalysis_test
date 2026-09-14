@@ -8,6 +8,10 @@ from core.target import Target
 class Candidate:
     data: bytes
 
+    @property
+    def is_validated(self) -> bool:
+        return True
+
     def serialize(self) -> bytes:
         return self.data
 

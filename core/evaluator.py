@@ -12,6 +12,9 @@ from .target import Target
 
 
 class ValidatedCandidate(Protocol):
+    @property
+    def is_validated(self) -> bool: ...
+
     def serialize(self) -> bytes: ...
 
 
@@ -25,7 +28,7 @@ class EvaluationResult:
 
 class Evaluator:
     def evaluate(self, candidate: ValidatedCandidate, target: Target, *, include_trace: bool = False) -> EvaluationResult:
-        if not callable(getattr(candidate, "serialize", None)):
+        if not callable(getattr(candidate, "serialize", None)) or not getattr(candidate, "is_validated", False):
             raise TypeError("evaluation requires a validated candidate with serialize()")
         started = perf_counter_ns()
         traced = sha256d_with_trace(candidate.serialize()) if include_trace else None

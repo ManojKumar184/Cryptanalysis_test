@@ -1,0 +1,12 @@
+experiment:
+  continual_learning: true
+  autonomous_mode: false
+search:
+  trace_mode: selected
+learning:
+  replay:
+    enabled: true
+checkpoint:
+  interval: configurable
+persistence:
+  root: /data/cryptoanalysis

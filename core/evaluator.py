@@ -4,18 +4,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from time import perf_counter_ns
-from typing import Protocol
+from .block import Candidate
 
 from .sha256d import sha256d, sha256d_with_trace
 from .sha_trace import SHA256dTrace
 from .target import Target
-
-
-class ValidatedCandidate(Protocol):
-    @property
-    def is_validated(self) -> bool: ...
-
-    def serialize(self) -> bytes: ...
 
 
 @dataclass(frozen=True)
@@ -27,9 +20,14 @@ class EvaluationResult:
 
 
 class Evaluator:
-    def evaluate(self, candidate: ValidatedCandidate, target: Target, *, include_trace: bool = False) -> EvaluationResult:
-        if not callable(getattr(candidate, "serialize", None)) or not getattr(candidate, "is_validated", False):
-            raise TypeError("evaluation requires a validated candidate with serialize()")
+    def evaluate(self, candidate: Candidate, target: Target, *, include_trace: bool = False) -> EvaluationResult:
+        """Evaluate only the sealed ``Candidate`` value object.
+
+        Candidate construction invokes the central legality policy, so this
+        boundary cannot be crossed by a model-built or duck-typed object.
+        """
+        if not isinstance(candidate, Candidate):
+            raise TypeError("evaluation requires a core.block.Candidate validated by BitcoinRules")
         started = perf_counter_ns()
         traced = sha256d_with_trace(candidate.serialize()) if include_trace else None
         digest = traced.digest if traced else sha256d(candidate.serialize())

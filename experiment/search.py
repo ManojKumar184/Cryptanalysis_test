@@ -38,6 +38,13 @@ class SearchEngine:
         self.ranking = RankingModel()
         self.evaluator = Evaluator()
 
+    def restore_ranking(self, state: dict[str, object]) -> None:
+        self.ranking = RankingModel.from_state_dict(dict(state.get("ranking", {})))
+
+    def register_committed_candidates(self, candidate_ids: list[str]) -> None:
+        for candidate_id in candidate_ids:
+            self.validator.register_id(candidate_id)
+
     def attempt(self, candidate: Candidate, target: Target, proposal_index: int) -> SearchAttempt:
         # Trace data is computed before scoring; trace digests are deliberately discarded.
         trace_started = perf_counter_ns()

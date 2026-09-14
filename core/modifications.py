@@ -47,6 +47,10 @@ class ModificationValidator:
     def register(self, candidate: Candidate) -> None:
         self._seen_candidate_ids.add(candidate.candidate_id)
 
+    def register_id(self, candidate_id: str) -> None:
+        """Preload a durably committed candidate identity during recovery."""
+        self._seen_candidate_ids.add(candidate_id)
+
     def apply(self, candidate: Candidate, modification: Modification) -> Candidate:
         if candidate.rules != self.rules:
             raise ValueError("candidate rules do not match modification validator rules")

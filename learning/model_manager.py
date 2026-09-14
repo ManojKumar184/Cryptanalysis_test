@@ -40,3 +40,9 @@ class ModelManager:
         created_at = datetime.now(timezone.utc).isoformat()
         self.database.record_model(version=version, parent_version=parent, path=str(path), experience_count=experience_count, metrics=metrics, promoted=promote, created_at=created_at)
         return ModelVersion(version, parent, path, experience_count, metrics, promote, created_at)
+
+    def load_state(self, version: str) -> dict[str, object]:
+        payload = json.loads(Path(self.database.model_path(version)).read_text(encoding="utf-8"))
+        if payload.get("version") != version:
+            raise ValueError("model artifact version mismatch")
+        return dict(payload["state"])

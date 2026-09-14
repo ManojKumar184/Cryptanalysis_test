@@ -141,3 +141,12 @@ class ExperienceDatabase:
     def latest_model_version(self) -> str | None:
         row = self.connection.execute("SELECT version FROM models ORDER BY version DESC LIMIT 1").fetchone()
         return row[0] if row else None
+
+    def model_path(self, version: str) -> str:
+        row = self.connection.execute("SELECT path FROM models WHERE version = ?", (version,)).fetchone()
+        if row is None:
+            raise KeyError(f"unknown model version {version}")
+        return str(row[0])
+
+    def modified_candidate_ids(self, candidate_id: str) -> list[str]:
+        return [str(row[0]) for row in self.connection.execute("SELECT modified_candidate_id FROM attempts WHERE candidate_id = ?", (candidate_id,))]

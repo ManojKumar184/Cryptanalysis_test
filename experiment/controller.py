@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from enum import Enum
 
-from core.block import Candidate
+from core.block import Candidate, FixedFields, MutableFields
 from core.target import Target
 from learning.database import ExperienceDatabase
 from learning.experience import Experience
@@ -49,6 +49,25 @@ class ExperimentController:
         self.attempt_index = 0
         self.search.validator.register(candidate)
         self.state = ControllerState.ANALYZING
+
+    def restore(self, state: dict[str, object]) -> None:
+        """Restore only an integrity-checked checkpoint and reconcile the DB."""
+        if int(state["experience_count"]) > self.database.count_experiences():
+            raise RuntimeError("checkpoint references experience not present in database")
+        raw = state.get("candidate")
+        if raw is None:
+            self.current_candidate = None
+        else:
+            fixed = raw["fixed"]
+            mutable = raw["mutable"]
+            self.current_candidate = Candidate(FixedFields(bytes.fromhex(fixed["previous_block_hash"]), bytes.fromhex(fixed["merkle_root"]), int(fixed["bits"])), MutableFields(int(mutable["version"]), int(mutable["timestamp"]), int(mutable["nonce"])), dict(raw.get("metadata", {})))
+            self.search.validator.register(self.current_candidate)
+            self.search.register_committed_candidates(self.database.modified_candidate_ids(self.current_candidate.candidate_id))
+        self.attempt_index = int(state["attempt_index"])
+        self.state = ControllerState(str(state["controller_state"]))
+        version = state.get("model_version")
+        if version:
+            self.search.restore_ranking(self.models.load_state(str(version)))
 
     def run_one_attempt(self) -> bool:
         if self.current_candidate is None:

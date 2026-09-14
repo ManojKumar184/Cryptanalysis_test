@@ -57,6 +57,7 @@ class ExperienceDatabase:
                 success INTEGER NOT NULL CHECK (success IN (0, 1)),
                 trace_reference TEXT,
                 difference_reference TEXT,
+                feature_json TEXT,
                 timings_json TEXT NOT NULL,
                 created_at TEXT NOT NULL,
                 UNIQUE(candidate_id, attempt_index)
@@ -99,6 +100,9 @@ class ExperienceDatabase:
                 created_at TEXT NOT NULL
             );
         """)
+        columns = {row[1] for row in self.connection.execute("PRAGMA table_info(attempts)")}
+        if "feature_json" not in columns:
+            self.connection.execute("ALTER TABLE attempts ADD COLUMN feature_json TEXT")
         self.connection.commit()
 
     def commit_experience(self, experience: Experience) -> int:
@@ -107,13 +111,14 @@ class ExperienceDatabase:
             with self.transaction() as connection:
                 connection.execute("INSERT OR IGNORE INTO candidates(candidate_id, created_at) VALUES (?, ?)", (experience.candidate_id, experience.timestamp))
                 cursor = connection.execute(
-                    """INSERT INTO attempts(candidate_id, modified_candidate_id, attempt_index, modification_json, model_version, score, digest_hex, target_hex, success, trace_reference, difference_reference, timings_json, created_at)
-                    VALUES (:candidate_id, :modified_candidate_id, :attempt_index, :modification_json, :model_version, :score, :digest_hex, :target_hex, :success, :trace_reference, :difference_reference, :timings_json, :created_at)""",
+                    """INSERT INTO attempts(candidate_id, modified_candidate_id, attempt_index, modification_json, model_version, score, digest_hex, target_hex, success, trace_reference, difference_reference, feature_json, timings_json, created_at)
+                    VALUES (:candidate_id, :modified_candidate_id, :attempt_index, :modification_json, :model_version, :score, :digest_hex, :target_hex, :success, :trace_reference, :difference_reference, :feature_json, :timings_json, :created_at)""",
                     {
                         "candidate_id": row["candidate_id"], "modified_candidate_id": row["modified_candidate_id"], "attempt_index": row["attempt_index"],
                         "modification_json": json.dumps(row["modification"], sort_keys=True), "model_version": row["model_version"], "score": row["score"],
                         "digest_hex": row["digest"], "target_hex": row["target_hex"], "success": int(row["success"]), "trace_reference": row["trace_reference"],
                         "difference_reference": row["difference_reference"], "timings_json": json.dumps(row["timings_ns"], sort_keys=True), "created_at": row["timestamp"],
+                        "feature_json": json.dumps(row["feature_vector"]) if row["feature_vector"] is not None else None,
                     },
                 )
                 attempt_id = int(cursor.lastrowid)

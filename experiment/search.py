@@ -26,6 +26,7 @@ class SearchAttempt:
     evaluation: object
     trace_ns: int
     inference_ns: int
+    state_features: tuple[float, ...]
 
 
 class SearchEngine:
@@ -51,4 +52,4 @@ class SearchEngine:
         inference_ns = perf_counter_ns() - inference_started
         # Only this isolated evaluator compares the exact digest to the target.
         evaluation = self.evaluator.evaluate(modified_candidate, target)
-        return SearchAttempt(modified_candidate, modification, score, evaluation, trace_ns, inference_ns)
+        return SearchAttempt(modified_candidate, modification, score, evaluation, trace_ns, inference_ns, features)
